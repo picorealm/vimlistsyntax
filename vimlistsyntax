@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+#
+# vimlistsyntax
+#
+# Script to list all available syntax hightlight styles for Vim.
+#
+#  - use Vim's :redir to output 'echo &rtp' to text file
+#  - search Vim runtimepath (rtp) for .vim syntax definition files
+#  - use Python os.scandir() for fast searches of directories
+#
+# Pico <pico@picorealm.net>
+# 
+# Sun, 28 Nov 2021 21:13:57 -0700
+#
+from subprocess import run, DEVNULL
+import os
+
+tmp = "/tmp/ahw2AkoCh7figh4"
+run(['vim', '-c',
+     f'redir > {tmp} | echo &rtp | redir END',
+     '-c', 'q!'], stdout=DEVNULL, stderr=DEVNULL)
+
+with open(tmp, 'r') as rtpraw:
+    rtp = rtpraw.read().strip().split(',')
+    rtpraw.close()
+    os.remove(tmp)
+
+sdirs = []
+for d in rtp:
+    if os.path.isdir(d):
+        with os.scandir(d) as it:
+            for entry in it:
+                if entry.is_dir(follow_symlinks=True) and entry.name == 'syntax':
+                    sdirs.append(entry.path)
+
+sfiles = []
+for d in sdirs:
+    with os.scandir(d) as it:
+        for entry in it:
+            if entry.is_file() and entry.name.endswith('.vim'):
+                sfiles.append(os.path.splitext(entry.name)[0])
+
+sfiles.sort()
+for f in sfiles:
+    print(f)
+
